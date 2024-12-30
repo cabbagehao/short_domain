@@ -6,7 +6,7 @@ from common_utils.domain_generator import *
 from database.supabase_crud import SupabaseCRUD
 from checkers.rdap_checker import is_domain_avaliable
 
-THREAD_CNT = 10
+THREAD_CNT = 1
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 
@@ -66,6 +66,8 @@ def main():
                     db.upsert_one('ltd_infos', ltd_info, 'ltd_name')
                     print(f"\nupdate ltd_infos with {domain}\n")
                 cnt += 1
+                import time
+                time.sleep(2)
             # 处理剩余的未完成任务
             for completed_future in as_completed(futures):
                 domain = futures.pop(completed_future)
