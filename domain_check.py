@@ -2,20 +2,22 @@ import os
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 # from tlds import all_tlds
-from common_utils.domain_generator import generate_domains
+from common_utils.domain_generator import *
 from database.supabase_crud import SupabaseCRUD
 from checkers.rdap_checker import is_domain_avaliable
 
-THREAD_CNT = 5
+THREAD_CNT = 10
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 
 def main():
     # 生成domain
-    ltd = 'so'
-    rdap_url = "https://rdap.nic.so/domain/"
+    ltd = 'io'
     print(f"Generating {ltd} domains")
-    domains = generate_domains(ltd, max_len = 3)
+    domains = generate_domains_3(ltd)         # 49284
+    # domains = generate_domains_4digit(ltd)    # 10000
+    # domains = generate_domains_4letter(ltd)     # 456976
+    # print("domains preview: ", domains[:10])
 
     # 连接数据库
     print("Connecting db")
@@ -30,41 +32,57 @@ def main():
     cached_ok_domains = []
     cnt = 0
     with ThreadPoolExecutor(max_workers=THREAD_CNT) as executor:
-        futures = {executor.submit(is_domain_avaliable, rdap_url, domain): domain for domain in domains}
-        with tqdm(total=len(domains), desc="Checking domains") as pbar:
-            for future in as_completed(futures):
-                domain = futures[future]
-                try:
-                    is_available = future.result()
-                    if is_available:
-                        cached_ok_domains.append({"domain": domain})
-                except Exception as e:
-                    print(f"Error checking {domain}: {e}")
-                finally:
-                    pbar.update(1)  # 更新进度条
+        futures = {}  # 存储 Future 和域名的映射
+        with tqdm(desc="Checking domains") as pbar:
+            # 提交任务并动态处理完成的任务
+            for domain in domains:
+                future = executor.submit(is_domain_avaliable, domain)
+                futures[future] = domain
+
+                # 如果达到最大线程数，处理一个已完成的任务
+                if len(futures) == THREAD_CNT:
+                    completed_future = next(as_completed(futures))  # 处理一个已完成的任务
+                    domain = futures.pop(completed_future)
+                    try:
+                        if completed_future.result():
+                            cached_ok_domains.append({"domain": domain})
+                        # 当前available达到100条时，将缓存的域名批量写入数据库。
+                        if len(cached_ok_domains) == 100:
+                            db.bulk_upsert(ltd, cached_ok_domains, 'domain')
+                            cached_ok_domains.clear()
+                            print(f"Insert new domains into {ltd}, current domain: {domain}")
+                    except Exception as e:
+                        print(f"Error checking {domain}: {e}")
+                    finally:
+                        # pbar.update(1)
+                        pass
 
                 # 当前达到1000条，写入一次数据库tld info
                 if cnt % 1000 == 0:
                     ltd_info = {
                         'ltd_name': ltd,
                         'last_check_domain': domain
-                    }                
+                    }
                     db.upsert_one('ltd_infos', ltd_info, 'ltd_name')
-                    print(f"Insert {ltd} into ltd_infos")
-                    # break
+                    print(f"\nupdate ltd_infos with {domain}\n")
                 cnt += 1
-
-                # 当前available达到100条时，将缓存的域名批量写入数据库。
-                if len(cached_ok_domains) == 100:
-                    db.bulk_upsert(ltd, cached_ok_domains, 'domain')
-                    cached_ok_domains.clear()
-                    print(f"Insert new domains into {ltd}, current domain: {domain}")
+            # 处理剩余的未完成任务
+            for completed_future in as_completed(futures):
+                domain = futures.pop(completed_future)
+                try:
+                    if completed_future.result():
+                        cached_ok_domains.append({"domain": domain})
+                except Exception as e:
+                    print(f"Error checking {domain}: {e}")
+                finally:
+                    # pbar.update(1)
+                    pass
             if cached_ok_domains:
                 db.bulk_upsert(ltd, cached_ok_domains, 'domain')
                 cached_ok_domains.clear()
             # 打印总条数。
             ltd_domains_cnt = db.util.count_records(ltd)
-            print(f"{ltd} domains total:  {ltd_domains_cnt}")                
+            print(f"{ltd} domains total:  {ltd_domains_cnt}")
     return
 
 # 主函数
