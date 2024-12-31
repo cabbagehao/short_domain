@@ -11,13 +11,13 @@ def generate_domains_3(suffix):
     # len 2
     for combo in product(chars, repeat=2):
         yield f"{''.join(combo)}.{suffix}"
-    # # len 3
-    # for combo in product(chars, repeat=3):
-    #     yield f"{''.join(combo)}.{suffix}"
-    # # 3位数带连字符
-    # for ch1 in chars:
-    #     for ch2 in chars:
-    #         yield f"{ch1}-{ch2}.{suffix}"
+    # len 3
+    for combo in product(chars, repeat=3):
+        yield f"{''.join(combo)}.{suffix}"
+    # 3位数带连字符
+    for ch1 in chars:
+        for ch2 in chars:
+            yield f"{ch1}-{ch2}.{suffix}"
 
 def generate_domains_4letter(suffix):
     suffix = suffix.lstrip('.')

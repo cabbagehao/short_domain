@@ -4,6 +4,7 @@ rdap_urls = {
         'so': ["https://rdap.nic.so/domain/", 'https://rdap.centralnic.com/so/'],
         'ai': ['https://rdap.whois.ai/domain/', 'https://rdap.nominet.uk/domain/'],
         'io': ['https://nic.io/whois.php'],
+        'is': ['https://www.isnic.is/is/whois/search?query='],
         'com': ['https://rdap.verisign.com/com/v1/domain/']
 }
 
@@ -44,7 +45,24 @@ def is_io_avaliable(domain_name, rdap_url):
         else:
             print(f"Return not right: {response.status_code}, {response.json()}")
     except requests.exceptions.RequestException as e:
-        print(f"Error querying RDAP: {e}")
+        print(f"Error querying RDAP: {e}, domain: {domain_name}")
+    return False
+
+def is_is_avaliable(domain_name, rdap_url):
+    try:
+        response = requests.get(rdap_url + domain_name, timeout=5)
+        if response.status_code != 200:
+            print(f"Return status_code not right: {response.text}, domain: {domain_name}")
+            return False
+        if 'er laust' in response.text:
+            return True
+        elif 'Skráningarskírteini' in response.text:
+            return False
+        else:
+            ret = 'Maður eða vél' in response.text
+            print(f"Return not right, too much query: {ret}, domain: {domain_name}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error querying RDAP: {e}, domain: {domain_name}")
     return False
 
 def is_domain_avaliable(domain_name):
@@ -63,6 +81,8 @@ def is_domain_avaliable(domain_name):
         # 添加简化查询参数
         if domain_name.endswith('.io'):
             return is_io_avaliable(domain_name, rdap_url)
+        if domain_name.endswith('.is'):
+            return is_is_avaliable(domain_name, rdap_url)
 
         query_url = f"{rdap_url}{domain_name}?fields=status,ldhName"  # 'https://rdap.nic.so/domain/
         response = requests.get(query_url, timeout=10)
@@ -77,7 +97,7 @@ def is_domain_avaliable(domain_name):
             if "status" in rdap_data or "ldhName" in rdap_data:
                 return False  # 已被注册，不能注册
     except requests.exceptions.RequestException as e:
-        print(f"Error querying RDAP: {e}")
+        print(f"Error querying RDAP: {e}, domain: {domain_name}")
         return False  # 如果请求失败，假定域名不可注册（保守策略）
 
     return False  # 如果没有明确信息，假定域名已注册
@@ -86,5 +106,5 @@ def is_domain_avaliable(domain_name):
 
 # 示例使用
 if __name__ == '__main__':
-    ret = is_domain_avaliable('he2llo.io')
+    ret = is_domain_avaliable('test.is')
     print(ret)

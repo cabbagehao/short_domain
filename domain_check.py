@@ -12,9 +12,13 @@ key = os.environ.get("SUPABASE_KEY")
 
 def main():
     # 生成domain
-    ltd = 'io'
+    ltd = 'is'
     print(f"Generating {ltd} domains")
     domains = generate_domains_3(ltd)         # 49284
+    # while True:
+    #     domain = next(domains)
+    #     if len(domain) == len('o98.io') and domain > 'o98.io':
+    #         break
     # domains = generate_domains_4digit(ltd)    # 10000
     # domains = generate_domains_4letter(ltd)     # 456976
     # print("domains preview: ", domains[:10])
@@ -22,7 +26,7 @@ def main():
     # 连接数据库
     print("Connecting db")
     db = SupabaseCRUD(url, key)
-    res = db.table_manager.create_available_tdl_domains_table_if_not_exists(ltd)
+    res = db.table_manager.create_available_tdl_domains_table_if_not_exists('domain_' + ltd)
     if res['status'] != 'success':
         print(res['message'])
         return
@@ -54,7 +58,7 @@ def main():
                     except Exception as e:
                         print(f"Error checking {domain}: {e}")
                     finally:
-                        # pbar.update(1)
+                        pbar.update(1)
                         pass
 
                 # 当前达到1000条，写入一次数据库tld info
@@ -66,8 +70,8 @@ def main():
                     db.upsert_one('ltd_infos', ltd_info, 'ltd_name')
                     print(f"\nupdate ltd_infos with {domain}\n")
                 cnt += 1
-                import time
-                time.sleep(2)
+                # import time
+                # time.sleep(2)
             # 处理剩余的未完成任务
             for completed_future in as_completed(futures):
                 domain = futures.pop(completed_future)
