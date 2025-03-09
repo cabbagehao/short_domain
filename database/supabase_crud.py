@@ -2,6 +2,7 @@ from supabase import create_client
 from database.table_manager import TableManager
 from database.supabase_utils import SupabaseUtils
 from typing import Dict, List
+from loguru import logger
 
 '''
 ltd_infos:
@@ -28,7 +29,7 @@ class SupabaseCRUD:
             response = self.db.table(table).upsert(record, on_conflict=conflict_col).execute()
             return {"status": "success", "data": response.data[0] if response.data else None}
         except Exception as e:
-            print(f"error: {str(e)}")
+            logger.info(f"error: {str(e)}")
             return {"status": "error", "message": str(e)}
 
     def bulk_upsert(self, table: str, records: List[Dict], conflict_col: str) -> Dict:
@@ -37,6 +38,6 @@ class SupabaseCRUD:
             response = self.db.table(table).upsert(records, on_conflict=conflict_col).execute()
             return {"status": "success", "data": response.data}
         except Exception as e:
-            print(f"error: {str(e)}")
+            logger.info(f"bulk_upsert error: {str(e)}")
             return {"status": "error", "message": str(e)}
-            
+

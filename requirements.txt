@@ -1,2 +1,5 @@
 httpx[http2]
 supabase
+google-cloud-domains
+google-auth
+logru

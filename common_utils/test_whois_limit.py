@@ -1,5 +1,6 @@
 import subprocess
 import time
+from loguru import logger
 
 prev_length = -1
 t1 = time.time()
@@ -8,9 +9,9 @@ for i in range(1000):
         output = result.stdout
         length = len(output)
         t2 = time.time()
-        print(i, length, int(i / (t2 - t1)))
+        logger.info(i, length, int(i / (t2 - t1)))
         # if prev_length != -1 and length != prev_length:
         if 'No Object Found' not in output:
-            print(f"new output: {output}")
+            logger.info(f"new output: {output}")
             break
         prev_length = length

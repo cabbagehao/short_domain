@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 from collections import Counter
+from loguru import logger
 
 # Step 1: 抓取 IANA 页面内容
 url = "https://www.iana.org/domains/root/db"
@@ -39,4 +40,4 @@ output_file = "tld_length_distribution.png"  # 输出文件名
 plt.savefig(output_file, format="png", dpi=300)  # 指定格式为 PNG，分辨率为 300 DPI
 plt.show()
 
-print(f"图表已保存为 {output_file}")
+logger.info(f"图表已保存为 {output_file}")

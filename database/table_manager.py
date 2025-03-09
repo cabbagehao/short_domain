@@ -1,11 +1,12 @@
 from supabase import create_client, Client
 import os
 from typing import Dict, List, Optional
+from loguru import logger
 
 class TableManager:
     def __init__(self, url: str, key: str):
         self.db = create_client(url, key)
-        
+
     @classmethod
     def from_env(cls):
         """从环境变量创建实例"""
@@ -22,13 +23,13 @@ class TableManager:
         columns = []
         for column, properties in schema.items():
             columns.append(f"{column} {properties}")
-            
+
         create_table_sql = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             {', '.join(columns)}
         );
         """
-        
+
         # 执行SQL
         try:
             self.db.postgrest.rpc('create_table_function', {
@@ -45,3 +46,22 @@ class TableManager:
             "created_at": "TIMESTAMPTZ DEFAULT NOW()"
         }
         return self.create_table_if_not_exists(table_name, domains_schema)
+
+    def truncate_table(self, table_name: str) -> Dict[str, str]:
+        """
+        清空指定表的所有数据
+
+        Args:
+            table_name: 要清空的表名
+
+        Returns:
+            Dict with status and message
+        """
+        try:
+            # 使用 gte (大于等于) 0 来匹配所有记录
+            self.db.table(table_name).delete().gte('id', 0).execute()
+            logger.info(f"Successfully truncated table: {table_name}")
+            return {"status": "success", "message": f"Table {table_name} truncated successfully"}
+        except Exception as e:
+            logger.error(f"Error truncating table {table_name}: {str(e)}")
+            return {"status": "error", "message": f"Failed to truncate table: {str(e)}"}

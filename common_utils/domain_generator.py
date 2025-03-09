@@ -1,4 +1,5 @@
 from itertools import product
+from loguru import logger
 import string
 
 chars = string.ascii_lowercase + string.digits

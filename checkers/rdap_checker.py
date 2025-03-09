@@ -1,4 +1,5 @@
 import requests
+from loguru import logger
 
 rdap_urls = {
         'so': ["https://rdap.nic.so/domain/", 'https://rdap.centralnic.com/so/'],
@@ -43,16 +44,21 @@ def is_io_avaliable(domain_name, rdap_url):
             if 'Domain not found' in rdap_data['text']:
                 return True
         else:
-            print(f"Return not right: {response.status_code}, {response.json()}")
+            logger.info(f"Return not right: {response.status_code}, {response.json()}")
     except requests.exceptions.RequestException as e:
-        print(f"Error querying RDAP: {e}, domain: {domain_name}")
+        logger.info(f"Error querying RDAP: {e}, domain: {domain_name}")
     return False
 
 def is_is_avaliable(domain_name, rdap_url):
     try:
+        proxy =
+        proxies = {
+            'http': f'http://{proxy}',
+            'https': f'http://{proxy}'
+        }
         response = requests.get(rdap_url + domain_name, timeout=5)
         if response.status_code != 200:
-            print(f"Return status_code not right: {response.text}, domain: {domain_name}")
+            logger.info(f"Return status_code not right: {response.text}, domain: {domain_name}")
             return False
         if 'er laust' in response.text:
             return True
@@ -60,9 +66,9 @@ def is_is_avaliable(domain_name, rdap_url):
             return False
         else:
             ret = 'Maður eða vél' in response.text
-            print(f"Return not right, too much query: {ret}, domain: {domain_name}")
+            logger.info(f"Return not right, too much query: {ret}, domain: {domain_name}")
     except requests.exceptions.RequestException as e:
-        print(f"Error querying RDAP: {e}, domain: {domain_name}")
+        logger.info(f"Error querying RDAP: {e}, domain: {domain_name}")
     return False
 
 def is_domain_avaliable(domain_name):
@@ -73,7 +79,7 @@ def is_domain_avaliable(domain_name):
     """
     tld = domain_name.split('.')[1]
     if tld not in rdap_urls:
-        print(f"No rdap urls found for {tld}")
+        logger.info(f"No rdap urls found for {tld}")
         return False
 
     rdap_url = rdap_urls[tld][0]
@@ -97,7 +103,7 @@ def is_domain_avaliable(domain_name):
             if "status" in rdap_data or "ldhName" in rdap_data:
                 return False  # 已被注册，不能注册
     except requests.exceptions.RequestException as e:
-        print(f"Error querying RDAP: {e}, domain: {domain_name}")
+        logger.info(f"Error querying RDAP: {e}, domain: {domain_name}")
         return False  # 如果请求失败，假定域名不可注册（保守策略）
 
     return False  # 如果没有明确信息，假定域名已注册
@@ -107,4 +113,4 @@ def is_domain_avaliable(domain_name):
 # 示例使用
 if __name__ == '__main__':
     ret = is_domain_avaliable('test.is')
-    print(ret)
+    logger.info(ret)
